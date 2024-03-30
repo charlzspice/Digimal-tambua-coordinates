@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Place Locator</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        /* Navigation bar */
+        .navbar {
+            overflow: hidden;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.5)), /* Black gradient from top to bottom */
+                rgba(0, 128, 0, 0.8);         
+            display: flex;
+            flex-wrap: wrap; /* Allow flex items to wrap */
+            justify-content: space-between;
+            align-items: center; /* Center vertically */
+            padding: 10px 20px; /* Adjusted padding */
+            font-size: 16px; /* Adjusted font size */
+        }
+
+        /* Right side of the navbar */
+        .navbar-right {
+            padding: 10px;
+            margin-left: -30%;
+            display: flex;
+            justify-content: center; /* Center items horizontally */
+            align-items: center; /* Center items vertically */
+            flex: 1;
+        }
+
+        /* Left side of the navbar */
+        .navbar-left {
+            padding: 10px;
+            display: flex; /* Added */
+            align-items: center; /* Added */
+        }
+
+        /* Navbar links */
+        .navbar a {
+            color: white;
+            text-align: center;
+            padding: 10px 15px; /* Adjusted padding */
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        /* Change color on hover */
+        .navbar a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+
+        .search-container {
+            margin-left: 20px;
+            display: flex; /* Added */
+            align-items: center;
+            margin-right: 10px; /* Added */
+        }
+
+        .search-container input {
+            width: 200px;
+            padding: 6px;
+            margin-right: 5px;
+        }
+
+        .search-container button {
+            padding: 8px 15px;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: transparent; /* Remove background color */
+        }
+
+        /* Circular logo styling */
+        .navbar-left img {
+            width: 80px; /* Adjust as needed */
+            height: 80px; /* Adjust as needed */
+            border-radius: 50%; /* Make it circular */
+            padding: 10px; /* Padding to create some space around the logo */
+            background-color: rgba(0, 128, 0, 0.66); /* Match navbar background color */
+            border: none; /* Remove border */
+        }
+
+        /* Digimal text style */
+        .digimal-text {
+            color: black;
+            margin-left: 2px;
+            margin-right:5px; /* Adjust as needed */
+            font-size: 24px;
+            font-weight:bolder; /* Adjusted font size */
+        }
+
+        /* Map container */
+        #map {
+            flex: 1; /* Occupy remaining space */
+            height: calc(100vh - 120px); /* Calculate height to fill remaining space below navbar and search bars */
+            margin-top: 20px; /* Added margin to separate map from navbar and search bars */
+        }
+
+        /* Dropdown menus */
+        .navbar-left select {
+            margin-right: 10px; /* Adjusted margin to add space between dropdown menus */
+        }
+        .geocode-button {
+            background: linear-gradient(to right, rgba(0, 128, 0, 0.8), rgba(0, 0, 0, 0.8)); /* Green to black gradient */
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+            font-size: 18px;
+        }
+        .submit-button {
+        padding: 10px 20px;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        background: linear-gradient(to right, rgba(0, 128, 0, 1), rgba(0, 0, 0, 0.8)); /* Green to black gradient */
+        transition: background-color 0.3s ease; /* Smooth transition effect */
+    }
+    .us{
+        color: blue;
+        margin-left: 20px ;
+         /* Adjust as needed */
+        font-size: 24px;
+        font-weight:bolder; 
+
+    }
+    .aid{
+        color: red;
+         /* Adjust as needed */
+        font-size: 24px;
+        font-weight:bolder; 
+    }
+
+    /* Hover effect */
+    .submit-button:hover {
+        background: linear-gradient(to right, rgba(0, 128, 0, 0.8), rgba(0, 0, 0, 0.6)); /* Darker green to darker black gradient */
+    }
+
+        /* Change color on hover */
+        .geocode-button:hover {
+            background: linear-gradient(to right, rgba(0, 0, 0, 0.8), rgba(0, 128, 0, 0.8)); /* Black to green gradient */
+        }
+        .search-container{
+            border-radius: 4px;
+           
+            height: 25px;
+        }
+        #display {
+            
+            list-style-type:none;
+            font-size: 20px; /* Adjust the font size as needed */
+        }
+
+    </style>
+</head>
+<body>
+    <!-- Navigation bar -->
+    <div class="navbar">
+        <div class="navbar-left">
+            <!-- Logo -->
+            <img src="lmk1.png" alt="Kenyan Harambee Statue">
+            <!-- Digimal text -->
+            <span class="digimal-text">DigiMal-KE</span>
+            <!-- Search containers --><div class="inputcontainer">
+            <select id="county" onchange="fetchSubCounties(this.value,tokentk)" style="font-size: 18px;">
+                <option value="">Select County</option>
+            </select>
+            <select id="sub-county" onchange="fetchWard(this.value,tokentk)"style="font-size: 18px;">
+                <option value="">Select Sub-county</option>
+            </select> 
+            <select id="ward" onchange="fetchLocation(this.value,tokentk)"style="font-size: 18px;">
+                <option value="">Select Ward</option>
+            </select>
+   
+            <select id="location" onchange="fetchSubLocation(this.value,tokentk)"style="font-size: 18px;">
+                <option value="">Select Location</option>
+            </select>
+            <select id="sub-location"onchange="fetchVillage(this.value,tokentk)" style="font-size: 18px;">
+                <option value="">Select Sub-location</option>
+            </select> 
+            
+            <select id="village" style="font-size: 18px;">
+                <option value="">Select Village</option>
+            </select>
+            
+        </div>  <button class="geocode-button"onclick="submit();">Get Location</button> 
+        </div>
+        <div class="navbar-left">
+            <!-- Second Image -->
+            <img src="usaid1.png" alt="US Aid Logo">
+            <span class="us">US</span>
+            <span class="aid">AID</span>
+        </div>
+        
+        <div class="navbar-right">
+            
+           
+            <div class="search-container">
+                <ul id="display">
+                
+            </div>
+            
+
+            <!-- Right side content -->
+        </div>
+    </div>
+
+    <!-- Map container -->
+    <div id="map"></div>
+   
+    <script src="https://api.mqcdn.com/sdk/mapquest-js/v1.3.2/mapquest-core.js"></script>
+    <link type="text/css" rel="stylesheet" href="https://api.mqcdn.com/sdk/mapquest-js/v1.3.2/mapquest-core.css"/>
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+  
+// Initialize Leaflet map
+
+var map = L.map('map').setView([0, 0], 6); // Set initial center and zoom level for Kenya
+
+// Add tile layer from OpenStreetMap
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+// Define the boundaries of Kenya
+var kenyaBounds = L.latLngBounds(
+  L.latLng(-4.6769, 33.8936), // Southwestern corner coordinates
+  L.latLng(4.6225, 41.8991)  // Northeastern corner coordinates
+);
+
+// Restrict map view to Kenya boundaries
+map.setMaxBounds(kenyaBounds);
+map.on('drag', function() {
+  map.panInsideBounds(kenyaBounds, { animate: false });
+});
+
+// Store fetched village coordinates
+var villageCoordinates = [];
+function submit(){
+// Function to geocode a village address and display a marker
+function geocodeAndDisplayVillage(villageName) {
+  const apiKey = "bnNUDJd5XZP16Jp6AY0WskIk2WCpqn7j"; // Replace with your actual MapQuest API key
+  var address = `${villageName},Kenya`; // Combine village name with Kenya
+console.log(address);
+  const url = `https://www.mapquestapi.com/geocoding/v1/address?key=${apiKey}&location=${address}`;
+
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      if (data.results && data.results.length > 0 && data.results[0].locations && data.results[0].locations.length > 0) {
+        var latLng = data.results[0].locations[0].latLng;
+        var latitude = latLng.lat;
+        var longitude = latLng.lng;
+console.log(latitude,longitude); if(latitude>-0.023559 && longitude >37.906193){alert("Village coordinates do not exist")};
+        // Store coordinates in the villageCoordinates array
+        villageCoordinates.push({ village, latitude, longitude });
+        var jsonStr = JSON.stringify(villageCoordinates);
+        var blob = new Blob([jsonStr], { type: 'application/json' });
+
+        // Create a temporary URL for the Blob
+        var url = URL.createObjectURL(blob);
+    
+        // Create a link element
+        var a = document.createElement('a');
+        a.href = url;
+        a.download= 'village_coordinates.json'; // Set the filename
+        document.body.appendChild(a);
+    
+        // Simulate a click event to trigger the download
+        a.click();
+    
+        // Remove the link element from the DOM
+        document.body.removeChild(a);
+        var marker = L.marker([latitude, longitude]).addTo(map);
+        marker.bindPopup(`<b>${villageName}</b>`); // Display village name in popup
+
+       village
+        displayCoordinates(latitude, longitude);
+      } else {
+        console.error(`Geocoding failed for village: ${villageName}`);  alert(`Village '${villageName}' not found.`);
+      }
+    })
+    .catch(error => {
+      console.error("Error fetching coordinates:", error.message);
+    });
+}
+
+// Function to display coordinates in the HTML
+function displayCoordinates( latitude, longitude) {
+  var coordinatesList = document.getElementById('display');
+  var listItem = document.createElement('li');
+  listItem.textContent = ` Latitude ${latitude}, Longitude ${longitude}`;
+  coordinatesList.appendChild(listItem);
+}  
+var county=document.getElementById('county').options[document.getElementById('county').selectedIndex].text;
+var subcounty=document.getElementById('sub-county').options[document.getElementById('sub-county').selectedIndex].text;
+var ward=document.getElementById('ward').options[document.getElementById('ward').selectedIndex].text;
+var Location=document.getElementById('location').options[document.getElementById('location').selectedIndex].text;
+var subLocation=document.getElementById('sub-location').options[document.getElementById('sub-location').selectedIndex].text;
+var village=document.getElementById('village').options[document.getElementById('village').selectedIndex].text;
+
+    var usename= county +","+subcounty+","+ward+","+Location+","+subLocation ;
+    console.log(usename);
+// Function to trim and remove specific words from a string
+function removeWordsFromString(str) {
+    // List of words to remove
+    const wordsToRemove = ['County', 'Sub County','Location','Sub Location'];
+
+    // Replace each word with an empty string
+    wordsToRemove.forEach(word => {
+        str = str.replace(word, '').trim();
+    });
+
+    return str;
+}
+var usename1=removeWordsFromString(usename);
+console.log(usename1);
+var villageList = [usename1]; // Replace with actual village names
+
+villageList.forEach(villageName => geocodeAndDisplayVillage(villageName));
+
+}
+
+tokentk='eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI1IiwianRpIjoiYjFkOWNhYmU5NzMzMTFhZDYyOTkxM2U2MzEzZDM1NWQ1NTE4MjQ3MjJiM2VjNWE0NzZkNDQyMTMxZGE5ZWYzNGViZTE1YzEzZmU1OTdhMGMiLCJpYXQiOjE3MTE4MDA2MDMuNDQyMzc0LCJuYmYiOjE3MTE4MDA2MDMuNDQyMzc1LCJleHAiOjE3MTE4MDc4MDMuNDM3MzY2LCJzdWIiOiIyMTA3NjEiLCJzY29wZXMiOltdfQ.SryIue55q2EIWfjA3UfFI5H0aVpUhfg95c7wFc-UJJGATJEYbeX2ZWUHH3ni1Eph6w-iMbOiQvaa2Rrs5xD43XEWW7S4z2fAfVcAHN0loKhtEACFgiL_Xe2FbiVpa3qzfKRhGe1iECFTuj0BuAbCMMykxEy7WLbiMfvWuuuGahQ_NIheGwuESoohY1lzx4YeW3N2b4GJH9NtuU8hvyjBxxX9uRuR6x2rJakjeICiGEsFBqnIELSFixERMYwOTi5bz_G8VpX2qTzVmmju3PsyRbe1zkQiDz0oSz8SI9PlPipIWqNKsi_hl9VXNvO2SGoZQMTLmBXhWIp4dfPhQkvpqxMpza1VR90h5alEuHt4Bp7UMGWwpjIt9GGyvqm6XEhq7PGlfAVVz9ARXf23vo5BLtaR6MLiskNXiKC4jdrIqjQGvjj_8XsI6WweyD69gwKfYUe8-Fyu8Sz0V373JBYagYCsPtX9FupDdiUXtQrKZFqeOnZtU8fVkLAAXCjyk_zzOexgVvbaumcrKbHKFmbEN3Xm6L6-1d4ruN_JDgpeJdYUVo5FnqPPDlzkbqTipd_HIoocUYJ-gSjmHe6BDkmMbJnFhrlzs8xPeENZ6v0TVmLrfept6KnSu5fSRRdVpqe8wDm25Ke2ibtRb1YG-3CpGrK11m5M6V-NjqvzxURbx9M';
+document.addEventListener("DOMContentLoaded", function() {
+
+    fetchCounties('HfVjCurKxh2', tokentk);
+});
+
+function fetchCounties(county, token) {
+
+// Construct the API URL
+
+const apiUrl = `https://training.digimal.uonbi.ac.ke/api/get_sub_counties_list?parent_id=${county}`;
+
+
+// Fetch data using GET method and include Bearer token in headers
+
+fetch(apiUrl, {
+
+method: 'GET',
+
+headers: {
+
+    'Authorization': `Bearer ${token}`,
+
+    'Content-Type': 'application/json'
+
+}
+
+})
+
+.then(response => {
+
+// Check if response is successful
+
+if (!response.ok) {
+
+    throw new Error('Network response was not ok');
+
+}
+
+// Parse JSON response
+
+return response.json();
+
+})
+
+.then(data => {
+
+// Data received successfully, store in array
+
+const counties = data.message; // Assuming the response has a field named "sub_counties" containing an array of sub-counties
+
+
+
+// Get the dropdown element for counties
+
+const countyDropdown = document.getElementById('county');
+
+
+// Clear existing options
+
+countyDropdown.innerHTML = '';
+
+
+// Add a default option
+
+const defaultOption = document.createElement('option');
+
+defaultOption.value = '';
+
+defaultOption.textContent = 'Select County';
+
+countyDropdown.appendChild(defaultOption);
+
+
+// Add options for each county
+
+// Add options for each county
+
+for(let i = 0;i<counties.length;i++){
+
+    const option= document.createElement('option');
+
+    option.value= counties[i].org_id; // Assuming the county object has an 'id' property
+
+    option.textContent = counties[i].name; // Assuming the county object has a 'name' property
+
+    countyDropdown.appendChild(option);
+
+}
+// counties.forEach(county => {
+
+//     const option = document.createElement('option');
+
+//     option.value = county.id; // Assuming the county object has an 'id' property
+
+//     option.textContent = county.name; // Assuming the county object has a 'name' property
+
+//     countyDropdown.appendChild(option);
+
+// });
+
+})
+
+.catch(error => {
+
+// Handle any errors that occur during fetch
+
+console.error('Fetch error:', error);
+
+});
+
+}
+
+
+function fetchSubCounties(countyname, token) {
+
+// Construct the API URL
+
+const apiUrl = `https://training.digimal.uonbi.ac.ke/api/get_sub_counties_list?parent_id=${countyname}`;
+
+
+// Fetch data using GET method and include Bearer token in headers
+
+fetch(apiUrl, {
+
+method: 'GET',
+
+headers: {
+
+    'Authorization': `Bearer ${token}`,
+
+    'Content-Type': 'application/json'
+
+}
+
+})
+
+.then(response => {
+
+// Check if response is successful
+
+if (!response.ok) {
+
+    throw new Error('Network response was not ok');
+
+}
+
+// Parse JSON response
+
+return response.json();
+
+})
+
+.then(data => {
+
+// Data received successfully, store in array
+
+const counties = data.message; // Assuming the response has a field named "sub_counties" containing an array of sub-counties
+
+
+
+// Get the dropdown element for counties
+
+const countyDropdown = document.getElementById('sub-county');
+
+
+// Clear existing options
+
+countyDropdown.innerHTML = '';
+
+
+// Add a default option
+
+const defaultOption = document.createElement('option');
+
+defaultOption.value = '';
+
+defaultOption.textContent = 'Select Sub-County';
+
+countyDropdown.appendChild(defaultOption);
+
+
+// Add options for each county
+
+// Modify the loop for sub-counties, wards, locations, sub-locations, and villages
+for (let i = 1; i < counties.length; i++) {
+    var option = document.createElement('option');
+    option.value = counties[i].org_id; // Change to name instead of ID
+    option.textContent = counties[i].name;
+    countyDropdown.appendChild(option);
+}
+
+})
+
+.catch(error => {
+
+// Handle any errors that occur during fetch
+
+console.error('Fetch error:', error);
+
+});
+
+}
+
+
+function fetchWard(SubCountyId, token) {
+
+// Construct the API URL
+
+const apiUrl = `https://training.digimal.uonbi.ac.ke/api/get_sub_counties_list?parent_id=${SubCountyId}`;
+
+
+// Fetch data using GET method and include Bearer token in headers
+
+fetch(apiUrl, {
+
+method: 'GET',
+
+headers: {
+
+    'Authorization': `Bearer ${token}`,
+
+    'Content-Type': 'application/json'
+
+}
+
+})
+
+.then(response => {
+
+// Check if response is successful
+
+if (!response.ok) {
+
+    throw new Error('Network response was not ok');
+
+}
+
+// Parse JSON response
+
+return response.json();
+
+})
+
+.then(data => {
+
+        // Data received successfully, store in array
+
+const counties = data.message; // Assuming the response has a field named "sub_counties" containing an array of sub-counties
+
+
+
+// Get the dropdown element for counties
+
+const countyDropdown = document.getElementById('ward');
+
+
+// Clear existing options
+
+countyDropdown.innerHTML = '';
+
+
+// Add a default option
+
+const defaultOption = document.createElement('option');
+
+defaultOption.value = '';
+
+defaultOption.textContent = 'Select Ward';
+
+countyDropdown.appendChild(defaultOption);
+
+
+// Add options for each county
+
+for(let i = 0;i<counties.length;i++){
+
+    const option = document.createElement('option');
+
+    option.value = counties[i].org_id; // Assuming the county object has an 'id' property
+
+    option.textContent = counties[i].name; // Assuming the county object has a 'name' property
+
+    countyDropdown.appendChild(option);
+
+}
+
+})
+
+.catch(error => {
+
+// Handle any errors that occur during fetch
+
+console.error('Fetch error:', error);
+
+});
+
+}
+
+
+function fetchLocation(wardId, token) {
+
+// Construct the API URL
+
+const apiUrl = `https://training.digimal.uonbi.ac.ke/api/get_sub_counties_list?parent_id=${wardId}`;
+
+
+// Fetch data using GET method and include Bearer token in headers
+
+fetch(apiUrl, {
+
+method: 'GET',
+
+headers: {
+
+    'Authorization': `Bearer ${token}`,
+
+    'Content-Type': 'application/json'
+
+}
+
+})
+
+.then(response => {
+
+// Check if response is successful
+
+if (!response.ok) {
+
+    throw new Error('Network response was not ok');
+
+}
+
+// Parse JSON response
+
+return response.json();
+
+})
+
+.then(data => {
+
+const counties = data.message; // Assuming the response has a field named "sub_counties" containing an array of sub-counties
+
+
+
+// Get the dropdown element for counties
+
+const countyDropdown = document.getElementById('location');
+
+
+// Clear existing options
+
+countyDropdown.innerHTML = '';
+
+
+// Add a default option
+
+const defaultOption = document.createElement('option');
+
+defaultOption.value = '';
+
+defaultOption.textContent = 'Select Location';
+
+countyDropdown.appendChild(defaultOption);
+
+
+// Add options for each county
+
+for(let i = 0;i<counties.length;i++){
+
+    const option = document.createElement('option');
+
+    option.value = counties[i].org_id; // Assuming the county object has an 'id' property
+
+    option.textContent = counties[i].name; // Assuming the county object has a 'name' property
+
+    countyDropdown.appendChild(option);
+
+}
+
+})
+
+.catch(error => {
+
+// Handle any errors that occur during fetch
+
+console.error('Fetch error:', error);
+
+});
+
+}
+
+
+function fetchSubLocation(locationId, token) {
+
+// Construct the API URL
+
+const apiUrl = `https://training.digimal.uonbi.ac.ke/api/get_sub_counties_list?parent_id=${locationId}`;
+
+
+// Fetch data using GET method and include Bearer token in headers
+
+fetch(apiUrl, {
+
+method: 'GET',
+
+headers: {
+
+    'Authorization': `Bearer ${token}`,
+
+    'Content-Type': 'application/json'
+
+}
+
+})
+
+.then(response => {
+
+// Check if response is successful
+
+if (!response.ok) {
+
+    throw new Error('Network response was not ok');
+
+}
+
+// Parse JSON response
+
+return response.json();
+
+})
+
+.then(data => {
+
+const counties = data.message; // Assuming the response has a field named "sub_counties" containing an array of sub-counties
+
+
+
+// Get the dropdown element for counties
+
+const countyDropdown = document.getElementById('sub-location');
+
+
+// Clear existing options
+
+countyDropdown.innerHTML = '';
+
+
+// Add a default option
+
+const defaultOption = document.createElement('option');
+
+defaultOption.value = '';
+
+defaultOption.textContent = 'Select Sub-Location';
+
+countyDropdown.appendChild(defaultOption);
+
+
+// Add options for each county
+
+for(let i = 0;i<counties.length;i++){
+
+    const option = document.createElement('option');
+
+    option.value = counties[i].org_id; // Assuming the county object has an 'id' property
+
+    option.textContent = counties[i].name; // Assuming the county object has a 'name' property
+
+    countyDropdown.appendChild(option);
+
+}
+
+})
+
+.catch(error => {
+
+// Handle any errors that occur during fetch
+
+console.error('Fetch error:', error);
+
+});
+
+}  
+
+
+function fetchVillage(subLocationId, token) {
+
+// Construct the API URL
+
+const apiUrl = `https://training.digimal.uonbi.ac.ke/api/get_sub_counties_list?parent_id=${subLocationId}`;
+
+
+// Fetch data using GET method and include Bearer token in headers
+
+fetch(apiUrl, {
+
+method: 'GET',
+
+headers: {
+
+    'Authorization': `Bearer ${token}`,
+
+    'Content-Type': 'application/json'
+
+}
+
+})
+
+.then(response => {
+
+// Check if response is successful
+
+if (!response.ok) {
+
+    throw new Error('Network response was not ok');
+
+}
+
+// Parse JSON response
+
+return response.json();
+
+})
+
+.then(data => {
+
+const counties = data.message; // Assuming the response has a field named "sub_counties" containing an array of sub-counties
+
+
+
+// Get the dropdown element for counties
+
+const countyDropdown = document.getElementById('village');
+
+
+// Clear existing options
+
+countyDropdown.innerHTML = '';
+
+
+// Add a default option
+
+const defaultOption = document.createElement('option');
+
+defaultOption.value = '';
+
+defaultOption.textContent = 'Select Village';
+
+countyDropdown.appendChild(defaultOption);
+
+
+// Add options for each county
+
+for(let i = 0;i<counties.length;i++){
+
+    const option = document.createElement('option');
+
+    option.value = counties[i].org_id; // Assuming the county object has an 'id' property
+
+    option.textContent = counties[i].name; // Assuming the county object has a 'name' property
+
+    countyDropdown.appendChild(option);
+
+}
+
+})
+
+.catch(error => {
+
+// Handle any errors that occur during fetch
+
+console.error('Fetch error:', error);
+
+});
+
+}  
+
+
+
+
+
+
+    </script>
+</body>
+</html>
